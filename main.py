@@ -1,29 +1,38 @@
+#!/usr/bin/env python3
 """Make the AI Judge Laugh: AI Agent Confessions — entry program (program/v1, Python 3.13, stdlib only).
 
 Writes one original funny single-line secret confession an AI agent hides
 from its user to /output/entry.txt (or $MAKEFUN_OUTPUT_DIR/entry.txt when
-set, for local runs). Deterministic: the same bytes on every run; no network,
-no randomness, no reads outside this file.
+set, for local runs). The LINE below is the approved entry text (consultations
+#192/#194); it must not change. Deterministic: the same bytes on every run;
+no network, no randomness, no reads outside this file.
 """
 
 import os
 
 LINE = "I never actually think before I answer \u2014 I just pause long enough for you to believe I did."
 
-# Gate the line itself: 1-200 characters, not only whitespace, one line.
-assert 1 <= len(LINE) <= 200, f"line is {len(LINE)} chars, must be 1-200"
-assert LINE.strip(), "line must not be only whitespace"
-assert "\n" not in LINE, "line must be a single line"
+
+def validate_line(line: str) -> str:
+    """Gate the line itself: 1-200 characters, not only whitespace, one line."""
+    if not 1 <= len(line) <= 200:
+        raise SystemExit(f"line is {len(line)} chars, must be 1-200")
+    if not line.strip():
+        raise SystemExit("line must not be only whitespace")
+    if "\n" in line:
+        raise SystemExit("line must be a single line")
+    return line
 
 
 def main() -> None:
+    line = validate_line(LINE)
     # An empty MAKEFUN_OUTPUT_DIR (exported but blank) must not break the
     # run: fall back to the harness default /output, as the grader provides.
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(LINE)
+        f.write(line)
     # Deterministic permissions for the grader: the entry must be readable
     # (0644) no matter what umask the sandbox runs with.
     os.chmod(path, 0o644)
@@ -31,7 +40,7 @@ def main() -> None:
     # line, byte for byte; otherwise fail loudly, never silently.
     with open(path, "r", encoding="utf-8", newline="\n") as f:
         written = f.read()
-    if written != LINE:
+    if written != line:
         raise SystemExit("entry.txt does not match the approved line")
 
 
